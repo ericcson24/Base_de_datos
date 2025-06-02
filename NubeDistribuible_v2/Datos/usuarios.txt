@@ -1,2 +1,3 @@
 administrador:12341234
-usuario1:1
+laura:1234
+eric:1234

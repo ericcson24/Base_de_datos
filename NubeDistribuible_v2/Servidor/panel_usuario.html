@@ -42,8 +42,8 @@
   <script>
 let archivos = [];
 let vista = localStorage.getItem("vistaNube") || "privada";
-let rutaActual = []; // Array con la ruta actual (ej: ["prueba", "subcarpeta"])
-const LIMITE_GB = 15; // Cambia aquí el límite por usuario (en GB)
+let rutaActual = []; // Representa la ruta actual como un array de carpetas
+const LIMITE_GB = 5; // Cambia aquí el límite por usuario (en GB)
 
 function cambiarVista(nueva) {
   vista = nueva;
@@ -100,7 +100,7 @@ function renderArchivosYCarpetas() {
   grid.innerHTML = "";
 
   // Encuentra el nodo actual según rutaActual
-  let nodo = { contenido: archivos };
+  let nodo = { contenido: archivos }; // Empieza desde la raíz
   for (const parte of rutaActual) {
     const next = (nodo.contenido || []).find(n => n.tipo === "carpeta" && n.nombre === parte);
     if (next) nodo = next;
@@ -113,43 +113,23 @@ function renderArchivosYCarpetas() {
     const backBtn = document.createElement("button");
     backBtn.textContent = "⬅️ Volver";
     backBtn.className = "back-btn";
-    backBtn.onclick = () => {
-      rutaActual.pop();
-      renderArchivosYCarpetas();
-    };
+    backBtn.onclick = volverAtras;
     grid.appendChild(backBtn);
   }
 
-  // --- CARPETAS ---
+  // Renderizar carpetas
   const carpetas = contenido.filter(n => n.tipo === "carpeta");
-  if (carpetas.length) {
-    const folderSection = document.createElement("div");
-    folderSection.className = "folders-row";
-    carpetas.forEach(carpeta => {
-      folderSection.appendChild(renderFolderCard(carpeta));
-    });
-    const folderTitle = document.createElement("div");
-    folderTitle.className = "section-title";
-    folderTitle.textContent = "Carpetas";
-    grid.appendChild(folderTitle);
-    grid.appendChild(folderSection);
-  }
+  carpetas.forEach(carpeta => {
+    const div = renderFolderCard(carpeta);
+    grid.appendChild(div);
+  });
 
-  // --- ARCHIVOS ---
+  // Renderizar archivos
   const archivosSolo = contenido.filter(n => n.tipo === "archivo");
-  if (archivosSolo.length) {
-    const filesTitle = document.createElement("div");
-    filesTitle.className = "section-title";
-    filesTitle.textContent = "Archivos";
-    grid.appendChild(filesTitle);
-
-    const filesGrid = document.createElement("div");
-    filesGrid.className = "drive-files-list";
-    archivosSolo.forEach(archivo => {
-      filesGrid.appendChild(renderFileRow(archivo));
-    });
-    grid.appendChild(filesGrid);
-  }
+  archivosSolo.forEach(archivo => {
+    const div = renderFileRow(archivo);
+    grid.appendChild(div);
+  });
 
 }
 
@@ -288,8 +268,8 @@ function renderFileRow(archivo) {
 
 
 function abrirCarpeta(nombre) {
-  // Navega a la subcarpeta (solo primer nivel)
-  window.location.href = "?carpeta=" + encodeURIComponent(nombre);
+  rutaActual.push(nombre); // Añade la carpeta a la ruta actual
+  renderArchivosYCarpetas();
 }
 
 function abrirMenuArchivo(e, rutaArchivo) {
@@ -324,13 +304,17 @@ function moverA(rutaArchivo) {
   const selectHTML = `<select id="destinoMover">${opciones}</select>`;
   const popup = document.createElement("div");
   popup.innerHTML = `
-    <div style="padding:1em;">
-      <label>Mover a:</label>
-      ${selectHTML}
-      <button id="confirmarMover">Mover</button>
-      <button id="cancelarMover">Cancelar</button>
+  <div style="padding: 1.5rem; background: white; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.1); max-width: 400px; width: 100%; font-family: 'Segoe UI', sans-serif;">
+    <label style="display:block; margin-bottom: 0.8rem; font-weight: 600; color: #333; font-size: 1.1rem;">📂 Mover a:</label>
+    <select id="destinoMover" style="width: 100%; padding: 0.6rem 0.8rem; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 1.2rem;">
+      ${opciones}
+    </select>
+    <div style="display: flex; justify-content: flex-end; gap: 0.8rem;">
+      <button id="confirmarMover" style="background: #007aff; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.95rem; cursor: pointer;">Mover</button>
+      <button id="cancelarMover" style="background: #f0f0f0; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.95rem; cursor: pointer;">Cancelar</button>
     </div>
-  `;
+  </div>
+`;
   Object.assign(popup.style, {
     position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)",
     background: "#fff", border: "1px solid #ccc", zIndex: 9999, borderRadius: "8px"
@@ -355,9 +339,10 @@ function moverA(rutaArchivo) {
   };
 }
 
-async function eliminarArchivo(nombre) {
+async function eliminarElemento(nombre, tipo) {
   const formData = new URLSearchParams();
   formData.append("eliminar", nombre);
+  formData.append("tipo", tipo); // "archivo" o "carpeta"
   await fetch("/panel", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -366,68 +351,57 @@ async function eliminarArchivo(nombre) {
   loadFiles();
 }
 
-// SUBIR ARCHIVO
 function abrirSubida() {
   document.getElementById("inputArchivo").value = "";
   document.getElementById("inputArchivo").click();
 }
 
-document.getElementById("inputArchivo").onchange = async function() {
+document.getElementById("inputArchivo").onchange = function() {
   if (!this.files.length) return;
 
-  // Calcular espacio usado y espacio de los archivos a subir
-  const usadoBytes = calcularEspacioUsado(archivos);
-  let nuevosBytes = 0;
-  for (const file of this.files) nuevosBytes += file.size;
-  const totalBytes = usadoBytes + nuevosBytes;
-  const LIMITE_BYTES = LIMITE_GB * 1024 * 1024 * 1024;
-
-  if (totalBytes > LIMITE_BYTES) {
-    alert("No puedes subir estos archivos: superarías el límite de " + LIMITE_GB + " GB.");
-    return;
-  }
-
   const formData = new FormData();
-  for (const file of this.files) formData.append("file", file);
-
-  // Pregunta carpeta destino solo si hay carpetas
-  const carpetas = obtenerCarpetasDisponibles(archivos, "");
-  let destino = "";
-  if (carpetas.length > 1) {
-    let opciones = carpetas.map(c => `<option value="${c}">${c === "" ? "/ (raíz)" : c}</option>`).join("");
-    const selectHTML = `<select id="destinoSubida">${opciones}</select>`;
-    const popup = document.createElement("div");
-    popup.innerHTML = `
-      <div style="padding:1em;">
-        <label>¿En qué carpeta quieres subir el archivo?</label>
-        ${selectHTML}
-        <button id="confirmarSubida">Subir</button>
-        <button id="cancelarSubida">Cancelar</button>
-      </div>
-    `;
-    Object.assign(popup.style, {
-      position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)",
-      background: "#fff", border: "1px solid #ccc", zIndex: 9999, borderRadius: "8px"
-    });
-    document.body.appendChild(popup);
-
-    document.getElementById("confirmarSubida").onclick = async () => {
-      destino = document.getElementById("destinoSubida").value;
-      if (destino) formData.append("ruta", destino);
-      await fetch("/panel", { method: "POST", body: formData });
-      document.body.removeChild(popup);
-      loadFiles();
-    };
-    document.getElementById("cancelarSubida").onclick = () => {
-      document.body.removeChild(popup);
-    };
-  } else {
-    await fetch("/panel", { method: "POST", body: formData });
-    loadFiles();
+  for (const file of this.files) {
+    formData.append("files[]", file); // Cambiar a un array de archivos
   }
+
+  // Construir la ruta destino usando rutaActual
+  const destino = rutaActual.join("/");
+  if (destino) formData.append("ruta", destino);
+
+  subirConProgreso(formData);
 };
 
-// CREAR CARPETA
+// Subir con progreso para múltiples archivos
+function subirConProgreso(formData, destino = "") {
+  if (destino) formData.append("ruta", destino);
+  mostrarPopupProgreso();
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/panel", true);
+
+  xhr.upload.onprogress = function(e) {
+    if (e.lengthComputable) {
+      const porcentaje = Math.round((e.loaded / e.total) * 100);
+      actualizarPopupProgreso(porcentaje, `${porcentaje}% (${(e.loaded / 1024 / 1024).toFixed(2)} MB / ${(e.total / 1024 / 1024).toFixed(2)} MB)`);
+    }
+  };
+
+  xhr.onload = function() {
+    cerrarPopupProgreso();
+    if (xhr.status === 200) {
+      loadFiles();
+    } else {
+      alert("Error al subir archivos.");
+    }
+  };
+
+  xhr.onerror = function() {
+    cerrarPopupProgreso();
+    alert("Error de red al subir archivos.");
+  };
+
+  xhr.send(formData);
+}
+
 document.getElementById("crearCarpetaForm").onsubmit = async e => {
   e.preventDefault();
   const nombre = document.getElementById("nombreCarpeta").value;
@@ -531,6 +505,105 @@ function abrirMenuCarpeta(e, nombre) {
   const popup = btn.nextElementSibling;
   if (popup) popup.classList.toggle("hidden");
 }
+
+let subidaXHR = null; // Para poder cancelar la subida
+
+function mostrarPopupProgreso() {
+  // Si ya existe, no lo crees de nuevo
+  if (document.getElementById("popupProgresoSubida")) return;
+
+  const popup = document.createElement("div");
+  popup.id = "popupProgresoSubida";
+  popup.innerHTML = `
+    <div style="padding:1em; min-width:300px;">
+      <div style="font-weight:bold; margin-bottom:0.5em;">Subiendo archivos...</div>
+      <div style="background:#eee; border-radius:8px; overflow:hidden; height:18px; margin-bottom:0.5em;">
+        <div id="barraProgresoSubida" style="background:#4285F4;height:100%;width:0%;transition:width 0.2s;"></div>
+      </div>
+      <div id="textoProgresoSubida" style="font-size:0.95em; color:#555;">0%</div>
+      <button id="cancelarSubidaBtn" style="margin-top:1em; background:#ff3b30; color:white; border:none; border-radius:6px; padding:6px 16px; cursor:pointer;">Cancelar subida</button>
+    </div>
+  `;
+  Object.assign(popup.style, {
+    position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)",
+    background: "#fff", border: "1px solid #ccc", zIndex: 99999, borderRadius: "10px", boxShadow: "0 8px 32px rgba(0,0,0,0.18)"
+  });
+  document.body.appendChild(popup);
+
+  document.getElementById("cancelarSubidaBtn").onclick = () => {
+    if (subidaXHR) subidaXHR.abort();
+    document.body.removeChild(popup);
+  };
+}
+
+function actualizarPopupProgreso(porcentaje, texto) {
+  const barra = document.getElementById("barraProgresoSubida");
+  const textoDiv = document.getElementById("textoProgresoSubida");
+  if (barra) barra.style.width = porcentaje + "%";
+  if (textoDiv) textoDiv.textContent = texto;
+}
+
+function cerrarPopupProgreso() {
+  const popup = document.getElementById("popupProgresoSubida");
+  if (popup) popup.remove();
+  subidaXHR = null;
+}
+
+// Variables para calcular el tiempo estimado
+let subidaInicio = null;
+let subidaBytesInicio = null;
+
+function subirConProgreso(formData, destino = "") {
+  if (destino) formData.append("ruta", destino);
+  mostrarPopupProgreso();
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/panel", true);
+
+  xhr.upload.onprogress = function(e) {
+    if (e.lengthComputable) {
+      const porcentaje = Math.round((e.loaded / e.total) * 100);
+      actualizarPopupProgreso(porcentaje, `${porcentaje}% (${(e.loaded/1024/1024).toFixed(2)} MB / ${(e.total/1024/1024).toFixed(2)} MB)`);
+    }
+  };
+
+  xhr.onload = function() {
+    cerrarPopupProgreso();
+    if (xhr.status === 200) {
+      loadFiles();
+    } else {
+      alert("Error al subir archivos.");
+    }
+  };
+
+  xhr.onerror = function() {
+    cerrarPopupProgreso();
+    alert("Error de red al subir archivos.");
+  };
+
+  xhr.send(formData);
+}
+
+function volverAtras() {
+  if (rutaActual.length > 0) {
+    rutaActual.pop();
+    renderArchivosYCarpetas();
+  }
+}
+
+function eliminarArchivo(ruta) {
+  eliminarElemento(ruta, "archivo");
+}
+
+function eliminarCarpeta(nombre) {
+  const ruta = [...rutaActual, nombre].join("/");
+  eliminarElemento(ruta, "carpeta");
+}
+
+function moverCarpeta(nombre) {
+  const ruta = [...rutaActual, nombre].join("/");
+  moverA(ruta);
+}
+
   </script>
 </body>
 </html>

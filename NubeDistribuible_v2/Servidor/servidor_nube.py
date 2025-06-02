@@ -8,8 +8,9 @@ import json
 import time
 import shutil
 import cgi
-
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "Datos"))
+print("[DEBUG REAL] BASE_DIR =", BASE_DIR)
+
 USERS_PATH = os.path.join(BASE_DIR, "usuarios.txt")
 LOG_PATH = os.path.join(BASE_DIR, "log.txt")
 
@@ -78,12 +79,9 @@ class NubeServidor(BaseHTTPRequestHandler):
         return c.get("usuario") == "administrador" and c.get("clave") == "12341234"
 
     def user_folder(self):
-        c = self.parse_cookies()
-        tipo = c.get("carpeta", "publica")
-        usuario = c.get("usuario", "anonimo")
-        carpeta_personal = os.path.join(BASE_DIR, usuario if tipo == "privada" else "Carpeta_compartida")
-        os.makedirs(carpeta_personal, exist_ok=True)
-        return carpeta_personal
+        """Devuelve la carpeta raíz del usuario autenticado."""
+        usuario = self.get_authenticated_user()
+        return os.path.join(BASE_DIR, usuario)  # No añadir "Datos" nuevamente
 
     def clear_cookies(self):
         self.send_header("Set-Cookie", "usuario=; Max-Age=0; Path=/")
@@ -162,7 +160,7 @@ class NubeServidor(BaseHTTPRequestHandler):
                 if not self.is_authenticated():
                     self.send_error(403)
                     return
-                nombre = unquote(path.replace("/uploads/", ""))
+                nombre = unquote(path.replace("/uploads/", ""))  # Decodifica la ruta
                 ruta = os.path.join(self.user_folder(), nombre)
                 if os.path.exists(ruta):
                     with open(ruta, "rb") as f:
@@ -171,7 +169,7 @@ class NubeServidor(BaseHTTPRequestHandler):
                     self.send_response(200)
                     self.send_header("Content-Type", tipo)
                     self.send_header("Content-Length", str(len(contenido)))
-                    self.send_header("Content-Disposition", f"inline; filename=\"{nombre}\"")
+                    self.send_header("Content-Disposition", f"inline; filename=\"{os.path.basename(nombre)}\"")
                     self.end_headers()
                     self.wfile.write(contenido)
                 else:
@@ -213,42 +211,44 @@ class NubeServidor(BaseHTTPRequestHandler):
             ping = (time.time() - inicio) * 1000
             print(f"📡 Petición de {self.client_address[0]} | Ping: {ping:.2f} ms")
     def listar_directorio_en_arbol(self, ruta_base):
+        """Lista el contenido de un directorio en forma de árbol."""
         print(f"[DEBUG] listar_directorio_en_arbol: {ruta_base}")
         estructura = []
+        if not os.path.exists(ruta_base):
+            print(f"[ERROR] La ruta no existe: {ruta_base}")
+            return estructura
+
         for nombre in os.listdir(ruta_base):
-            ruta = os.path.join(ruta_base, nombre)
+            ruta = os.path.normpath(os.path.join(ruta_base, nombre))  # Normaliza la ruta
             print(f"[DEBUG] Explorando: {ruta}")
             if nombre.lower().startswith("login"):
                 print(f"[DEBUG] Ignorando login: {nombre}")
                 continue
             if os.path.isdir(ruta):
-                print(f"[DEBUG] Es carpeta: {nombre}")
                 estructura.append({
                     "nombre": nombre,
                     "tipo": "carpeta",
                     "contenido": self.listar_directorio_en_arbol(ruta)
                 })
             else:
-                if ruta_base == self.user_folder():
-                    ruta_rel = nombre
-                else:
-                    ruta_rel = os.path.relpath(ruta, self.user_folder())
-                ruta_rel = ruta_rel.replace("/", os.sep).replace("\\", os.sep)
-                print(f"[DEBUG] Archivo: {nombre} | ruta_rel: {ruta_rel}")
+                ruta_rel = os.path.relpath(ruta, self.user_folder())
+                ruta_rel = ruta_rel.replace("\\", "/")  # Normaliza separadores para URLs
+                ruta_rel = unquote(ruta_rel)  # Decodifica cualquier codificación URL
                 estructura.append({
                     "nombre": nombre,
                     "tipo": "archivo",
                     "ext": os.path.splitext(nombre)[-1].lower(),
                     "ruta": ruta_rel,
-                    "tamano": os.path.getsize(ruta)  # <--- AÑADIDO AQUÍ
+                    "tamano": os.path.getsize(ruta)
                 })
-        print(f"[DEBUG] Estructura generada para {ruta_base}: {estructura}")
         return estructura
 
 
     def handle_panel(self, parsed):
         if parsed.query == "json":
             estructura = self.listar_directorio_en_arbol(self.user_folder())
+            print("[DEBUG] user_folder() devuelve:", self.user_folder())
+            print("[DEBUG] Estructura del directorio:", estructura)
             data = json.dumps(estructura).encode()
 
             print("📦 Enviando estructura JSON del panel")
@@ -349,117 +349,115 @@ class NubeServidor(BaseHTTPRequestHandler):
     
 
         if path == "/panel":
-            length = int(self.headers.get("Content-Length", 0))
-            data = self.rfile.read(length)
             content_type = self.headers.get("Content-Type", "")
-            print(f"[DEBUG] POST /panel content_type: {content_type}")
-            print(f"[DEBUG] POST /panel raw data: {data[:200]}...")
-
             if "multipart/form-data" in content_type:
                 boundary = content_type.split("boundary=")[-1].encode()
-                parts = data.split(b"--" + boundary)
-                for part in parts:
-                    if b"filename=" in part:
-                        headers, filedata = part.split(b"\r\n\r\n", 1)
-                        filedata = filedata.rsplit(b"\r\n", 1)[0]
-                        filename = headers.decode().split("filename=")[-1].split("\"")[-2]
-                        ruta_relativa = parse_qs(self.path.split("?", 1)[-1]).get("ruta", [""])[0]
-                        if not ruta_relativa and b"name=\"ruta\"" in part:
-                            try:
-                                ruta_info = part.decode(errors="ignore").split("name=\"ruta\"")[-1]
-                                ruta_relativa = ruta_info.split("\r\n")[-1].strip()
-                            except:
-                                ruta_relativa = ""
-                        destino = os.path.join(self.user_folder(), ruta_relativa)
-                        os.makedirs(destino, exist_ok=True)
-                        ruta = os.path.join(destino, filename)
+                length = int(self.headers.get("Content-Length", 0))
+                data = self.rfile.read(length)
+                partes = data.split(b"--" + boundary)
 
-                        with open(ruta, "wb") as f:
-                            f.write(filedata)
-                        registrar(f"{filename} subido")
-                        self.send_response(200)
-                        self.end_headers()
-                        return
+                archivos_subidos = []  # Lista para almacenar los nombres de los archivos subidos
+
+                for parte in partes:
+                    if b"filename=" in parte:
+                        try:
+                            headers, contenido = parte.split(b"\r\n\r\n", 1)
+                            contenido = contenido.rsplit(b"\r\n", 1)[0]
+                            nombre_archivo = headers.decode(errors="ignore").split("filename=")[-1].split('"')[1]
+                            ruta_destino = os.path.join(BASE_DIR, nombre_archivo)
+
+                            # Guardar el archivo en el destino
+                            with open(ruta_destino, "wb") as f:
+                                f.write(contenido)
+
+                            archivos_subidos.append(nombre_archivo)  # Agregar a la lista de archivos subidos
+                            print(f"✅ Archivo subido: {ruta_destino}")
+                        except Exception as e:
+                            print(f"❌ Error al subir archivo: {e}")
+                            self.send_response(500)
+                            self.end_headers()
+                            return
+
+                # Responder con éxito si al menos un archivo fue subido
+                if archivos_subidos:
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write(f"Archivos subidos correctamente: {', '.join(archivos_subidos)}".encode())
+                else:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(b"No se subieron archivos.")
+                return
 
             elif "application/x-www-form-urlencoded" in content_type:
-                datos = parse_qs(data.decode())
+                datos = parse_qs(data.decode(), keep_blank_values=True)
+                print(f"[DEBUG] POST /panel content_type: {content_type}")
                 print(f"[DEBUG] POST /panel datos: {datos}")
                 if "eliminar" in datos:
-                    archivo = datos["eliminar"][0].replace("/", os.sep).replace("\\", os.sep)
-                    ruta = os.path.join(self.user_folder(), archivo)
-                    print(f"[DEBUG] Eliminar archivo: {archivo} | Ruta real: {ruta}")
-                    # Normaliza la ruta para soportar / y \ en cualquier sistema
-                    archivo = datos["eliminar"][0].replace("/", os.sep).replace("\\", os.sep)
-                    ruta = os.path.join(self.user_folder(), archivo)
-                    print(f"🗑️ Solicitud para eliminar: {archivo} | Ruta real: {ruta}")
-                    if os.path.exists(ruta):
-                        try:
+                    archivo = datos["eliminar"][0]
+                    try:
+                        ruta = self.ruta_segura(archivo)  # Validar la ruta
+                        print(f"[DEBUG] Eliminar archivo/carpeta: {archivo} | Ruta real: {ruta}")
+                        if os.path.exists(ruta):
                             if os.path.isfile(ruta):
                                 os.remove(ruta)
                                 print(f"✅ Archivo eliminado: {ruta}")
-                                registrar(f"{archivo} eliminado")
+                                registrar(f"Archivo '{archivo}' eliminado")
                             elif os.path.isdir(ruta):
                                 shutil.rmtree(ruta)
                                 print(f"📁 Carpeta eliminada: {ruta}")
                                 registrar(f"Carpeta '{archivo}' eliminada")
-                        except Exception as e:
-                            print(f"❌ Error al eliminar {archivo}:", e)
-                            self.send_response(500)
-                            self.end_headers()
-                            return
-                        self.send_response(200)
-                        self.end_headers()
-                    else:
-                        print(f"❌ Archivo no encontrado para eliminar: {ruta}")
-                        self.send_response(404)
-                        self.send_header("Content-Type", "text/plain")
-                        self.end_headers()
-                        self.wfile.write(b"Archivo no encontrado")
+                            self.send_response(200)
+                        else:
+                            print(f"❌ Archivo o carpeta no encontrado: {ruta}")
+                            self.send_response(404)
+                            self.wfile.write(b"Archivo o carpeta no encontrado")
+                    except Exception as e:
+                        print(f"❌ Error al eliminar {archivo}: {e}")
+                        self.send_response(500)
+                        self.wfile.write(b"Error interno al eliminar el archivo o carpeta")
+                    self.end_headers()
 
                 elif "crear_carpeta" in datos:
                     nombre = datos["crear_carpeta"][0]
                     base = datos.get("base", [""])[0]
-                    print(f"[DEBUG] Crear carpeta: {nombre} en base: {base}")
-                    destino = os.path.join(self.user_folder(), base)
-                    os.makedirs(destino, exist_ok=True)
-                    ruta = os.path.join(destino, nombre)
-
-                    os.makedirs(ruta, exist_ok=True)
-                    registrar(f"📁 Carpeta '{nombre}' creada en '{base}'")
-                    self.send_response(200)
-                    self.end_headers()
-
-                elif "mover_archivo" in datos and "destino" in datos:
-                    archivo = datos["mover_archivo"][0].replace("/", os.sep).replace("\\", os.sep)
-                    destino_raw = datos["destino"][0]
-                    # Normaliza destino: raíz si está vacío o solo barras
-                    if destino_raw.strip().replace("/", "").replace("\\", "") == "":
-                        destino_rel = ""
-                    else:
-                        destino_rel = destino_raw.replace("/", os.sep).replace("\\", os.sep)
-                    ruta_original = os.path.join(self.user_folder(), archivo)
-                    print(f"[DEBUG] Mover archivo: {archivo} a destino: {destino_rel}")
-                    print(f"[DEBUG] Ruta original: {ruta_original}")
-                    if destino_rel == "":
-                        destino_dir = self.user_folder()
-                        print("[DEBUG] Moviendo a la raíz")
-                    else:
-                        destino_dir = os.path.join(self.user_folder(), destino_rel)
-                        print(f"[DEBUG] Moviendo a la carpeta: {destino_dir}")
-                    os.makedirs(destino_dir, exist_ok=True)
-                    nombre_archivo = os.path.basename(archivo)
-                    nueva_ruta = os.path.join(destino_dir, nombre_archivo)
-                    print(f"[DEBUG] Nueva ruta: {nueva_ruta}")
                     try:
-                        shutil.move(ruta_original, nueva_ruta)
-                        print(f"[DEBUG] Archivo movido de {ruta_original} a {nueva_ruta}")
-                        registrar(f"Archivo movido de {archivo} a {destino_rel}")
+                        destino_base = self.ruta_segura(base)  # Validar la ruta base
+                        ruta = os.path.join(destino_base, nombre)
+                        os.makedirs(ruta, exist_ok=True)
+                        print(f"📁 Carpeta creada: {ruta}")
+                        registrar(f"Carpeta '{nombre}' creada en '{base}'")
                         self.send_response(200)
                     except Exception as e:
-                        print(f"[DEBUG] Error al mover el archivo: {e}")
+                        print(f"❌ Error al crear carpeta '{nombre}': {e}")
                         self.send_response(500)
+                        self.wfile.write(b"Error interno al crear la carpeta")
                     self.end_headers()
+
+                elif "mover_archivo" in datos:
+                    archivo = datos["mover_archivo"][0]
+                    destino_raw = datos.get("destino", [""])[0]
+                    try:
+                        ruta_original = self.ruta_segura(archivo)
+                        destino_dir = self.ruta_segura(destino_raw)
+                        os.makedirs(destino_dir, exist_ok=True)
+
+                        # Detectar si es carpeta y extraer bien el nombre
+                        nombre_base = os.path.basename(archivo.rstrip("/\\"))  # elimina "/" final
+                        nueva_ruta = os.path.join(destino_dir, nombre_base)
+
+                        shutil.move(ruta_original, nueva_ruta)
+                        print(f"✅ Archivo/carpeta movido de {ruta_original} a {nueva_ruta}")
+                        registrar(f"Archivo o carpeta movido de '{archivo}' a '{destino_raw}'")
+                        self.send_response(200)
+                    except Exception as e:
+                        print(f"❌ Error al mover archivo/carpeta '{archivo}' a '{destino_raw}': {e}")
+                        self.send_response(500)
+                        self.wfile.write(b"Error interno al mover el archivo o carpeta")
+                    self.end_headers()
+
                     return
+
 
                 elif path == "/autoupload":
                     length = int(self.headers.get("Content-Length", 0))
@@ -552,6 +550,21 @@ class NubeServidor(BaseHTTPRequestHandler):
                     self._ok(f"Usuario '{borrar}' eliminado")
                 else:
                     self._error("Usuario no encontrado")
+
+    def ruta_segura(self, ruta_relativa):
+        """Asegura que la ruta esté dentro del directorio del usuario."""
+        ruta_abs = os.path.normpath(os.path.abspath(os.path.join(self.user_folder(), ruta_relativa)))
+        if not ruta_abs.startswith(self.user_folder()):
+            raise Exception("Intento de acceso no autorizado")
+        return ruta_abs
+
+    def get_authenticated_user(self):
+        """Obtiene el usuario autenticado desde las cookies."""
+        cookies = self.parse_cookies()
+        usuario = cookies.get("usuario")
+        if usuario in USERS:
+            return usuario
+        raise Exception("Usuario no autenticado o inválido")
 
 PORT = 55888
 httpd = HTTPServer(('', PORT), NubeServidor)

@@ -1,2 +1,74 @@
 [2025-06-02 11:55:24] 📁 Carpeta 'Carpeta' creada en ''
 [2025-06-02 11:56:06] Captura de pantalla 2025-06-02 115548.png subido
+[2025-06-02 12:04:24] PlayGTAV.exe subido
+[2025-06-02 12:04:29] PlayGTAV.exe eliminado
+[2025-06-02 12:09:16] amd_ags_x64.dll subido
+[2025-06-02 12:09:17] amd_ags_x64.dll subido
+[2025-06-02 12:10:19] amd_fidelityfx_dx12.dll subido
+[2025-06-02 12:13:27] f1 2022 copia.blend subido
+[2025-06-02 12:13:28] f1 2022 copia.blend subido
+[2025-06-02 12:13:28] f1 2022 copia.blend subido
+[2025-06-02 12:17:15] f1 2022 copia.blend subido
+[2025-06-02 12:17:16] f1 2022 copia.blend subido
+[2025-06-02 12:18:54] f1 2022.blend subido
+[2025-06-02 12:21:40] asfalto.blend subido
+[2025-06-02 12:22:03] Archivo movido de f1 2022.blend a Carpeta\
+[2025-06-02 12:51:18] f1 2022 copia.blend subido
+[2025-06-02 14:49:49] Archivo movido de amd_ags_x64.dll a Carpeta\
+[2025-06-02 14:59:55] Archivo movido de amd_fidelityfx_dx12.dll a Carpeta%2F
+[2025-06-02 15:38:36] Carpeta 'Carpeta%252F%2F' eliminada
+[2025-06-02 15:38:41] Carpeta\f1 2022.blend eliminado
+[2025-06-02 15:39:37] asfalto - copia.blend eliminado
+[2025-06-02 15:39:43] f1 2022 copia.blend eliminado
+[2025-06-02 15:39:45] f1 2022 copia - copia.blend eliminado
+[2025-06-02 15:40:41] Carpeta 'Carpeta%2F' eliminada
+[2025-06-02 15:51:07] Archivo movido de 'Carpeta/amd_ags_x64.dll' a ''
+[2025-06-02 15:51:14] Archivo movido de 'amd_ags_x64.dll' a 'Carpeta/'
+[2025-06-02 15:52:26] Archivo 'f1 2022 copia - copia (2).blend' eliminado
+[2025-06-02 15:52:33] Carpeta 'subcarpeta' creada en ''
+[2025-06-02 15:52:45] Archivo movido de 'subcarpeta' a 'Carpeta/'
+[2025-06-02 15:52:50] Archivo movido de 'Carpeta/amd_ags_x64.dll' a 'Carpeta/subcarpeta/'
+[2025-06-02 15:52:55] Archivo movido de 'Carpeta/subcarpeta/amd_ags_x64.dll' a ''
+[2025-06-02 16:00:57] Archivo movido de 'asfalto.blend' a 'Carpeta/'
+[2025-06-02 16:03:28] Archivo movido de 'amd_ags_x64.dll' a 'Carpeta/'
+[2025-06-02 16:03:34] Archivo movido de 'Carpeta/asfalto.blend' a ''
+[2025-06-02 16:05:51] Archivo movido de 'Carpeta/amd_ags_x64.dll' a ''
+[2025-06-02 16:16:35] Archivo movido de 'amd_ags_x64.dll' a 'Carpeta/'
+[2025-06-02 16:26:44] Archivo movido de 'asfalto.blend' a 'Carpeta/'
+[2025-06-02 16:28:40] Carpeta 'prueba' creada en ''
+[2025-06-02 16:28:54] Carpeta 'ertgretr' creada en ''
+[2025-06-02 16:32:02] Archivo movido de 'Captura de pantalla 2025-06-02 115548.png' a 'Carpeta/'
+[2025-06-02 16:32:09] Archivo movido de 'Carpeta/asfalto.blend' a ''
+[2025-06-02 16:33:48] Archivo movido de 'asfalto.blend' a 'Carpeta/'
+[2025-06-02 16:33:58] Archivo movido de 'Carpeta/amd_ags_x64.dll' a ''
+[2025-06-02 16:34:02] Archivo movido de 'Carpeta/asfalto.blend' a ''
+[2025-06-02 16:35:07] Archivo movido de 'ertgretr' a 'Carpeta/subcarpeta/'
+[2025-06-02 16:47:02] Carpeta 'prueba' creada en ''
+[2025-06-02 16:49:05] Archivo o carpeta movido de 'prueba' a 'Carpeta/'
+[2025-06-02 16:51:02] Archivo o carpeta movido de 'Carpeta/subcarpeta' a ''
+[2025-06-02 16:51:12] Archivo o carpeta movido de 'Carpeta/Captura de pantalla 2025-06-02 115548.png' a 'Carpeta/prueba/'
+[2025-06-02 16:51:15] Archivo o carpeta movido de 'Carpeta/prueba' a ''
+[2025-06-02 16:53:06] Carpeta 'mi novia es un pibonazo' creada en ''
+[2025-06-02 16:54:42] a96c0b23-3fba-4d1a-b370-52eec9c654fa.jpeg subido
+[2025-06-02 16:55:15] a408c9cf-cd30-4468-99da-85fb2fa98cf2.mp4 subido
+[2025-06-02 16:55:30] 5e54d98d-57e3-48fa-a52f-41789221137e.mp4 subido
+[2025-06-02 16:55:36] Archivo o carpeta movido de '5e54d98d-57e3-48fa-a52f-41789221137e.mp4' a 'mi novia es un pibonazo/'
+[2025-06-02 16:55:40] Archivo o carpeta movido de 'a408c9cf-cd30-4468-99da-85fb2fa98cf2.mp4' a 'mi novia es un pibonazo/'
+[2025-06-02 16:55:44] Archivo o carpeta movido de 'a96c0b23-3fba-4d1a-b370-52eec9c654fa.jpeg' a 'mi novia es un pibonazo/'
+[2025-06-02 16:59:46] Captura de pantalla 2025-06-02 161529.png subido
+[2025-06-02 17:00:04] Captura de pantalla 2025-06-02 155949.png subido
+[2025-06-02 17:00:16] Carpeta 'subcarpeta' eliminada
+[2025-06-02 17:00:38] 7ebbbdef-e81c-4716-b393-e1dc2dc10a4d.jpeg subido
+[2025-06-02 17:02:29] Captura de pantalla 2025-06-02 120051.png subido
+[2025-06-02 17:02:49] IMG_7534.jpeg subido
+[2025-06-02 17:02:56] Archivo o carpeta movido de '7ebbbdef-e81c-4716-b393-e1dc2dc10a4d.jpeg' a 'mi novia es un pibonazo/'
+[2025-06-02 17:03:00] Archivo o carpeta movido de 'IMG_7534.jpeg' a 'mi novia es un pibonazo/'
+[2025-06-02 17:09:02] Carpeta 'uni' creada en ''
+[2025-06-02 17:09:12] Archivo o carpeta movido de 'uni' a 'mi novia es un pibonazo/'
+[2025-06-02 17:09:19] Archivo o carpeta movido de 'mi novia es un pibonazo/uni' a ''
+[2025-06-02 17:10:27] GtaVI-main.zip subido
+[2025-06-02 17:10:35] Archivo o carpeta movido de 'GtaVI-main.zip' a 'uni/'
+[2025-06-02 17:11:56] CV_Eric_Kowalski_ES.pdf subido
+[2025-06-02 17:12:03] Harry-Fresh-main.zip subido
+[2025-06-02 17:12:08] Archivo o carpeta movido de 'Harry-Fresh-main.zip' a 'uni/'
+[2025-06-02 17:12:11] Archivo o carpeta movido de 'CV_Eric_Kowalski_ES.pdf' a 'uni/'
