@@ -125,4 +125,9 @@ Haz copia de seguridad de la carpeta `/Datos/` para conservar archivos y usuario
 
 ---
 
+## Capturas
+
+![image](https://github.com/user-attachments/assets/a79f57a4-c59d-46ae-86ee-fe91dd96fc90)
+
+
 **Desarrollado con ❤️ por Eric**
