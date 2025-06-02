@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seleccionar carpeta</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f6f6f6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h2 {
+      font-size: 1.4rem;
+      color: #333;
+      margin-bottom: 1rem;
+    }
+    button {
+      width: 100%;
+      max-width: 240px;
+      padding: 0.75rem;
+      margin: 0.5rem 0;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #007aff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005fcc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>¿Qué carpeta quieres abrir?</h2>
+    <button onclick="seleccionar('privada')">📁 Carpeta Privada</button>
+    <button onclick="seleccionar('publica')">🌍 Carpeta Pública</button>
+  </div>
+
+  <script>
+    function seleccionar(tipo) {
+      document.cookie = `carpeta=${tipo}; path=/`;
+      window.location.href = "/panel";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel de Administración</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f3f4f6;
+      padding: 2rem;
+      margin: 0;
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    .seccion {
+      background: white;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-width: 700px;
+    }
+
+    .seccion h3 {
+      margin-top: 0;
+      color: #007aff;
+    }
+
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    input, button {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: #007aff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #005fcc;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    th, td {
+      padding: 0.6rem;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    tr:hover {
+      background: #eef;
+    }
+
+    #archivos_usuario {
+      margin-top: 1.5rem;
+    }
+
+    .logout {
+      float: right;
+      background: #f44336;
+    }
+
+    .logout:hover {
+      background: #d32f2f;
+    }
+  </style>
+</head>
+<body>
+  <h1>👑 Panel de Administración</h1>
+  <button class="logout" onclick="window.location.href='/logout'">🚪 Cerrar sesión</button>
+
+  <div class="seccion">
+    <h3>➕ Añadir Nuevo Usuario</h3>
+    <form id="form-add" onsubmit="return enviar(this)">
+      <input name="nuevo" placeholder="Usuario nuevo" required />
+      <input name="clave" placeholder="Contraseña" required />
+      <button type="submit">Añadir</button>
+    </form>
+  </div>
+
+  <div class="seccion">
+    <h3>✏️ Editar Usuario</h3>
+    <form id="form-edit" onsubmit="return enviar(this)">
+      <input name="actual" placeholder="Usuario actual" required />
+      <input name="nuevo_nombre" placeholder="Nuevo nombre (opcional)" />
+      <input name="nueva_clave" placeholder="Nueva contraseña (opcional)" />
+      <button type="submit">Modificar</button>
+    </form>
+  </div>
+
+  <div class="seccion">
+    <h3>🗑️ Eliminar Usuario</h3>
+    <form id="form-delete" onsubmit="return enviar(this)">
+      <input name="borrar" placeholder="Usuario a eliminar" required />
+      <button type="submit">Eliminar</button>
+    </form>
+  </div>
+
+  <div class="seccion">
+    <h3>📋 Usuarios Registrados</h3>
+    <table id="tabla_usuarios">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Ver Archivos</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="archivos_usuario"></div>
+  </div>
+
+  <script>
+    async function cargarUsuarios() {
+      const resp = await fetch("/usuarios.json");
+      const usuarios = await resp.json();
+      const tbody = document.querySelector("#tabla_usuarios tbody");
+      tbody.innerHTML = "";
+      for (const usuario of usuarios) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${usuario}</td>
+          <td><button onclick="verArchivos('${usuario}')">📁 Ver</button></td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function verArchivos(usuario) {
+      const res = await fetch("/archivos_usuario?usuario=" + usuario);
+      const archivos = await res.json();
+      const div = document.getElementById("archivos_usuario");
+      div.innerHTML = `<h4>📂 Archivos de ${usuario}</h4><ul>` +
+        archivos.map(a => `<li>${a}</li>`).join("") + "</ul>";
+    }
+
+    async function enviar(formulario) {
+      const datos = new FormData(formulario);
+      const res = await fetch("/admin_op", {
+        method: "POST",
+        body: new URLSearchParams(datos)
+      });
+      const txt = await res.text();
+      alert(txt);
+      formulario.reset();
+      cargarUsuarios();
+      document.getElementById("archivos_usuario").innerHTML = "";
+      return false;
+    }
+
+    cargarUsuarios();
+  </script>
+</body>
+</html>

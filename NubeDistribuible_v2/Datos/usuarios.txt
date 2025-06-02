@@ -1,0 +1,2 @@
+administrador:12341234
+usuario1:1
